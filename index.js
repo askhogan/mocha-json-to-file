@@ -74,10 +74,10 @@ function JsonToFile(runner) {
 
     function clean(test) {
         test.title = test && test.title.replace(/[^\w\s]/gi, '');
-        var fullPath = test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title);
+        var fullPath = test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title, 50);
         return {
             title: fullPath || test.title,
-            fullTitle: fullPath || hat(),
+            fullTitle: _s.truncate(fullPath, 255) || hat(),
             duration: test.duration,
             file: test.file || hat()
         }
