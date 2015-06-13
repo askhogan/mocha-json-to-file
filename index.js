@@ -8,6 +8,7 @@ var _ = require('underscore');
 var _s = require('underscore.string');
 var hat = require('hat');
 
+
 exports = module.exports = JsonToFile;
 
 function JsonToFile(runner) {
@@ -15,8 +16,8 @@ function JsonToFile(runner) {
 
     runner.on('pass', function (test) {
         try {
-            var output = JSON.stringify({'pass': clean(test)});
-            writeToFile('pass', output, clean(test).fullTitle);
+            var cleanedTest = clean(test)
+            writeToFile('pass', cleanedTest, cleanedTest.fullTitle);
         } catch (e) {
             console.error('Error in pass', e);
         }
@@ -24,24 +25,34 @@ function JsonToFile(runner) {
 
     runner.on('fail', function (test, err) {
         try {
-            test = clean(test);
-            if (err && err.message) test.err = err.message;
-            var output = JSON.stringify({'fail': test});
-            writeToFile('fail', output, clean(test).fullTitle);
+            var cleanedTest = clean(test);
+            if (err && err.message) cleanedTest.err = err.message;
+            writeToFile('fail', cleanedTest, cleanedTest.fullTitle);
         } catch (e) {
             console.error('Error in fail', e);
         }
     });
 
-    function writeToFile(type, output, fullTitle) {
+    function writeToFile(type, data, fullTitle) {
         try {
+            var output = {};
+            output[type] = data;
+            var prettyOutput = JSON.stringify(output, null, 2);
             var file = getLogToFileName(type, fullTitle);
-            fs.writeFile(file, output, function (err) {
+            logIfFileExists(file);
+            fs.writeFile(file, prettyOutput, function (err) {
                 if (err) console.error(err);
             });
         } catch (e) {
             console.error('Error writing to file: ', e);
         }
+    }
+
+    function logIfFileExists(file){
+        try{
+            //todo write to file
+            if(fs.lstatSync(file)) console.error('overwriting file', file);
+        }catch(e){}
     }
 
     /**
@@ -52,8 +63,17 @@ function JsonToFile(runner) {
      */
     function getLogToFileName(type, fullTitle) {
         var base = __dirname + '/../../temp/mocha/' + type + '/';
+        if(_s.include(fullTitle, 'after each')){
+            fullTitle = 'after_each_' + hat()
+        }
         if (fullTitle.indexOf('after all') !== -1) {
             fullTitle = 'after_all_' + hat();
+        }
+        if(_s.include(fullTitle, 'before each')){
+            fullTitle = 'before_each_' + hat()
+        }
+        if(_s.include(fullTitle, 'before all')){
+            fullTitle = 'before_all_' + hat()
         }
         if (!type) {
             console.error('No type provided');
@@ -73,13 +93,13 @@ function JsonToFile(runner) {
      */
 
     function clean(test) {
-        test.title = test && test.title.replace(/[^\w\s]/gi, '');
-        var fullPath = test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title, 50);
+        test.title = test && test.title && test.title.replace(/[^\w\s]/gi, '');
+        var fullPath = test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title, 50) || (test && test.title);
         return {
-            title: fullPath || test.title,
+            title: fullPath,
             fullTitle: _s.truncate(fullPath, 255) || hat(),
-            duration: test.duration,
-            file: test.file || hat()
+            duration: test && test.duration,
+            file: (test && test.file) || hat()
         }
     }
 }
