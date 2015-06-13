@@ -3,17 +3,15 @@
  */
 
 var Base = require('./lib/base');
-var color = Base.color;
 var fs = require('fs');
+var _ = require('underscore');
+var _s = require('underscore.string');
 var hat = require('hat');
-var path = require('path');
 
-exports = module.exports = ClusterEmitterReporter;
+exports = module.exports = JsonToFile;
 
-function ClusterEmitterReporter(runner) {
+function JsonToFile(runner) {
     Base.call(this, runner);
-
-    var self = this;
 
     runner.on('pass', function (test) {
         try {
@@ -35,15 +33,6 @@ function ClusterEmitterReporter(runner) {
         }
     });
 
-    runner.on('end', function () {
-        try {
-            var output = JSON.stringify({'end': self.stats});
-            writeToFile('end', output, hat());
-        } catch (e) {
-            console.error('Error in end', e);
-        }
-    });
-
     function writeToFile(type, output, fullTitle) {
         try {
             var file = getLogToFileName(type, fullTitle);
@@ -62,9 +51,9 @@ function ClusterEmitterReporter(runner) {
      * @returns {string}
      */
     function getLogToFileName(type, fullTitle) {
-        var base = '/temp/mocha/' + type + '/';
+        var base = __dirname + '/../../temp/mocha/' + type + '/';
         if (fullTitle.indexOf('after all') !== -1) {
-            //do something here to make them unique
+            fullTitle = 'after_all_' + hat();
         }
         if (!type) {
             console.error('No type provided');
@@ -84,17 +73,13 @@ function ClusterEmitterReporter(runner) {
      */
 
     function clean(test) {
-        test.title = test.title.replace(/[^\w\s]/gi, '');
-        var fullPath = test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + test.title;
-        console.log(fullPath, test.file, test);
-        if (!test.file) {
-            console.log('No file so log out', this);
-        }
+        test.title = test && test.title.replace(/[^\w\s]/gi, '');
+        var fullPath = test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title);
         return {
             title: fullPath || test.title,
-            fullTitle: fullPath,
+            fullTitle: fullPath || hat(),
             duration: test.duration,
-            file: test.file
+            file: test.file || hat()
         }
     }
 }
