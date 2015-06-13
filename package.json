@@ -1,7 +1,7 @@
 {
   "name": "mocha-json-to-file",
   "description": "Prints test results in JSON and outputs to file. ",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "author": "Patrick Hogan <patrick@callinize.com>",
   "keywords": [
     "mocha",

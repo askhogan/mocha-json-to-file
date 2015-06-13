@@ -16,7 +16,7 @@ function JsonToFile(runner) {
 
     runner.on('pass', function (test) {
         try {
-            var cleanedTest = clean(test)
+            var cleanedTest = clean(test);
             writeToFile('pass', cleanedTest, cleanedTest.fullTitle);
         } catch (e) {
             console.error('Error in pass', e);
@@ -63,18 +63,6 @@ function JsonToFile(runner) {
      */
     function getLogToFileName(type, fullTitle) {
         var base = __dirname + '/../../temp/mocha/' + type + '/';
-        if(_s.include(fullTitle, 'after each')){
-            fullTitle = 'after_each_' + hat()
-        }
-        if (fullTitle.indexOf('after all') !== -1) {
-            fullTitle = 'after_all_' + hat();
-        }
-        if(_s.include(fullTitle, 'before each')){
-            fullTitle = 'before_each_' + hat()
-        }
-        if(_s.include(fullTitle, 'before all')){
-            fullTitle = 'before_all_' + hat()
-        }
         if (!type) {
             console.error('No type provided');
             return base + hat() + '.json';
@@ -94,12 +82,32 @@ function JsonToFile(runner) {
 
     function clean(test) {
         test.title = test && test.title && test.title.replace(/[^\w\s]/gi, '');
-        var fullPath = test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title, 50) || (test && test.title);
+        /**
+         * Mocha has 2 pull requests (1447 & 1745) to fix hook context issues in failHook
+         * adding here as a workaround until they are merged
+         */
+        if (test && isHook(test.title) && test.ctx && test.ctx.currentTest) {
+            test.title = (test.originalTitle || test.title) + ' for "' + test.ctx.currentTest.title + '"';
+        }
+        if(test && isHook(test.title) && test.parent && test.parent.file){
+            test.file = test.parent.file;
+        }
+        var title = getDescriptiveTitle(test);
         return {
-            title: fullPath,
-            fullTitle: _s.truncate(fullPath, 255) || hat(),
+            title: title,
+            fullTitle: _s.truncate(title, 255) || hat(),
             duration: test && test.duration,
             file: (test && test.file) || hat()
         }
+    }
+
+    function getDescriptiveTitle(test){
+        return test && test.file && test.file.indexOf('/') !== -1 && _.last(test.file.split('/')) + '_' + hat(6) + '_' + _s.truncate(test.title, 50) || test && test.title;
+    }
+
+    function isHook(title){
+        return _.some(['after each', 'after all', 'before each', 'before all'], function(hookTitle){
+            return _s.include(title, hookTitle);
+        });
     }
 }
